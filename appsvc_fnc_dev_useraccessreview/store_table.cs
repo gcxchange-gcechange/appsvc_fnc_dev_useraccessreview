@@ -10,6 +10,7 @@ using Newtonsoft.Json;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Table;
 using Microsoft.Extensions.Configuration;
+using System.Collections.Generic;
 
 namespace appsvc_fnc_dev_useraccessreview
 {
@@ -66,6 +67,9 @@ namespace appsvc_fnc_dev_useraccessreview
                     break;
                 case "delete":
                     var delete = await table_delete(tableClient, _person, log);
+                    break;
+                case "all":
+                    var getAll = await table_getAll(tableClient, _person, log);
                     break;
             }    
                 
@@ -147,5 +151,30 @@ namespace appsvc_fnc_dev_useraccessreview
             return "ok";
         }
 
+        public static async Task<string> table_getAll(CloudTableClient tableClient, PersonEntity _person, ILogger log)
+        {
+            // Get user that never sign in
+            CloudTable table = tableClient.GetTableReference("personitems");
+
+        
+                //var table = this.GetCloudTable("personitems");
+                TableContinuationToken token = null;
+                do
+                {
+                    var q = new TableQuery<PersonEntity>();
+                    var queryResult = await table.ExecuteQuerySegmentedAsync(q, token);
+                    foreach (var item in queryResult.Results)
+                    {
+                    log.LogInformation($"{item.Email_VC}");
+                       // yield return item;
+                    }
+                    token = queryResult.ContinuationToken;
+                } while (token != null);
+                return "ok";
+            }
+   
+            
+        }
+
     }
-}
+
