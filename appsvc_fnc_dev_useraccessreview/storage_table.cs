@@ -16,28 +16,27 @@ namespace appsvc_fnc_dev_useraccessreview
 {
     class storage_table
     {
+        public class Globals
+        {
+            //Global class so other class can access variables
+            static IConfiguration config = new ConfigurationBuilder()
+            .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+            .AddEnvironmentVariables()
+            .Build();
+
+            // Connect to the Storage account.
+            private static readonly CloudStorageAccount storageAccount = CloudStorageAccount.Parse(config["AzureWebJobsStorage"]);
+            private static readonly CloudTableClient tableClient = storageAccount.CreateCloudTableClient();
+
+            public static CloudTableClient Get_tableClient()
+            {
+                return tableClient;
+            }
+        }
         public async Task<List<userTable>> storage_table_data (ILogger log)
         {
-            log.LogInformation("C# HTTP trigger fun ction processed a request.");
-
-            IConfiguration config = new ConfigurationBuilder()
-
-                      .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-                      .AddEnvironmentVariables()
-                      .Build();
-            // Connect to the Storage account.
-            CloudStorageAccount storageAccount = CloudStorageAccount.Parse(config["AzureWebJobsStorage"]);       
-            CloudTableClient tableClient = storageAccount.CreateCloudTableClient();
-
-            var getAll = await table_getAll(tableClient, log);
-
-            return getAll;
-        }
-
-        public static async Task<List<userTable>> table_getAll(CloudTableClient tableClient, ILogger log)
-        {
             // Get user that never sign in
-            CloudTable table = tableClient.GetTableReference("userAccessReview");
+            CloudTable table = Globals.Get_tableClient().GetTableReference("userAccessReview");
             List<userTable> userTables = new List<userTable>();
         
                 //var table = this.GetCloudTable("personitems");
@@ -48,17 +47,35 @@ namespace appsvc_fnc_dev_useraccessreview
                     var queryResult = await table.ExecuteQuerySegmentedAsync(q, token);
                     foreach (var item in queryResult.Results)
                     {
-                    log.LogInformation($"{item.Email}");
-                    userTables.Add(new userTable { Id = item.Id, UPN = item.UPN, LastCall = "" });
+                    userTables.Add(new userTable { Id = item.Id, UPN = item.UPN, signinDate = item.signinDate });
                     // yield return item;
                 }
                     token = queryResult.ContinuationToken;
                 } while (token != null);
-                return userTables;
-            }
-   
-            
+            return userTables;
         }
 
+        public async Task<string> insert_table_data(PersonEntity _person, ILogger log)
+        {
+            var result = "";
+
+            // Get user that never sign in
+            CloudTable table = Globals.Get_tableClient().GetTableReference("userAccessReview");
+
+            await table.CreateIfNotExistsAsync();
+
+            TableOperation insertOperation = TableOperation.Insert(_person);
+            try
+            {
+                await table.ExecuteAsync(insertOperation);
+                result = "Success";
+            }catch (Exception ex)
+            {
+                result = ex.Message;
+                log.LogInformation(ex.Message);
+            }
+            return result;
+        }
     }
+}
 

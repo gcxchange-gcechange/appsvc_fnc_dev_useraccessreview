@@ -23,7 +23,6 @@ namespace appsvc_fnc_dev_useraccessreview
         {
             log.LogInformation("C# HTTP trigger function processed a request.");
 
-            string email = req.Query["email"];
             string UPN = req.Query["UPN"];
             string userID = req.Query["userID"];
             string signinDate = req.Query["signinDate"];
@@ -31,7 +30,6 @@ namespace appsvc_fnc_dev_useraccessreview
 
             string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
             dynamic data = JsonConvert.DeserializeObject(requestBody);
-            email = email ?? data?.email;
             UPN = UPN ?? data?.UPN;
             userID = userID ?? data?.userID;
             signinDate = signinDate ?? data?.signinDate;
@@ -39,7 +37,7 @@ namespace appsvc_fnc_dev_useraccessreview
 
 
             // Define the row,
-            string sRow = email + UPN;
+            string sRow = UPN;
 
             // Create the Entity and set the partition to signup, 
             PersonEntity _person = new PersonEntity("signup", sRow);
@@ -47,7 +45,6 @@ namespace appsvc_fnc_dev_useraccessreview
             _person.UPN = UPN;
             _person.Id = userID;
             _person.signinDate = signinDate;
-            _person.Email = email;
             IConfiguration config = new ConfigurationBuilder()
 
                       .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
@@ -168,7 +165,7 @@ namespace appsvc_fnc_dev_useraccessreview
                     var queryResult = await table.ExecuteQuerySegmentedAsync(q, token);
                     foreach (var item in queryResult.Results)
                     {
-                    log.LogInformation($"{item.Email}");
+                    log.LogInformation($"{item.UPN}");
                        // yield return item;
                     }
                     token = queryResult.ContinuationToken;

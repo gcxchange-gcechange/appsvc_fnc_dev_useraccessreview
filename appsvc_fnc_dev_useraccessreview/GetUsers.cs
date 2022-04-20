@@ -95,7 +95,7 @@ namespace appsvc_fnc_dev_useraccessreview
                     {
                         Id = row["UserId"].ToString(),
                         UPN = row["UserDisplayName"].ToString(),
-                        LastCall = row["LastCall"].ToString()
+                        signinDate = row["LastCall"].ToString()
                     });
 
                 }

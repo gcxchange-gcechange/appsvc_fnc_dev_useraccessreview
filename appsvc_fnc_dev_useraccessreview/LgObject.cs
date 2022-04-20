@@ -4,9 +4,9 @@ namespace appsvc_fnc_dev_useraccessreview
 {
     public class userTable
     {
+        public string signinDate { get; set; }
         public string Id { get; set; }
         public string UPN { get; set; }
-        public string LastCall { get; set; }
     }
 
     public class Person
@@ -28,7 +28,6 @@ namespace appsvc_fnc_dev_useraccessreview
 
         public PersonEntity() { }
         public string signinDate { get; set; }
-        public string Email { get; set; }
         public string Id { get; set; }
         public string UPN { get; set; }
     }

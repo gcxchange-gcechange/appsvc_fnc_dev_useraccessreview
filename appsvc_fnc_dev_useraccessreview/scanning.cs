@@ -1,16 +1,11 @@
 using System;
-using System.IO;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
-using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Table;
-using Microsoft.Extensions.Configuration;
-using System.Collections.Generic;
 using System.Linq;
 
 namespace appsvc_fnc_dev_useraccessreview
@@ -34,9 +29,10 @@ namespace appsvc_fnc_dev_useraccessreview
             var user_table = await user_storage_table.storage_table_data(log);
 
             //compare
-
+            var increment = 1;
             foreach (var user in usersdatla)
             {
+                increment++;
                 if (user_table.Any(a => a.UPN == user.UPN))
                 {
                     //compare date signin
@@ -45,7 +41,24 @@ namespace appsvc_fnc_dev_useraccessreview
                 }
                 else
                 {
-                    log.LogInformation($"add user {user.UPN}");
+                    // Define the row,
+                    string sRow = increment.ToString();
+
+                    //// Create the Entity and set the partition to signup, 
+                    PersonEntity _person = new PersonEntity("signup", sRow);
+
+                    _person.UPN = user.UPN;
+                    _person.Id = user.Id;
+                    _person.signinDate = user.signinDate;
+
+                    try
+                    {
+                        await user_storage_table.insert_table_data(_person, log);
+                    }catch (Exception ex)
+                    {
+                        log.LogInformation(ex.Message);
+                    }
+                    
                 }
                 log.LogInformation($"delete item from usersdata {user.UPN}");
             }
@@ -63,28 +76,22 @@ namespace appsvc_fnc_dev_useraccessreview
 
         public static async Task<string> table_getAll(CloudTableClient tableClient, PersonEntity _person, ILogger log)
         {
-            // Get user that never sign in
             CloudTable table = tableClient.GetTableReference("personitems");
+            TableContinuationToken token = null;
 
-        
-                //var table = this.GetCloudTable("personitems");
-                TableContinuationToken token = null;
-                do
+            do
+            {
+                var q = new TableQuery<PersonEntity>();
+                var queryResult = await table.ExecuteQuerySegmentedAsync(q, token);
+                foreach (var item in queryResult.Results)
                 {
-                    var q = new TableQuery<PersonEntity>();
-                    var queryResult = await table.ExecuteQuerySegmentedAsync(q, token);
-                    foreach (var item in queryResult.Results)
-                    {
-                    log.LogInformation($"{item.Email}");
-                       // yield return item;
-                    }
-                    token = queryResult.ContinuationToken;
-                } while (token != null);
-                return "ok";
-            }
-   
-            
-        }
-
+                log.LogInformation($"{item.UPN}");
+                    // yield return item;
+                }
+                token = queryResult.ContinuationToken;
+            } while (token != null);
+            return "ok";
+        }   
     }
+}
 

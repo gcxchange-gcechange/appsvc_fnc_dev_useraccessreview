@@ -21,8 +21,6 @@ namespace appsvc_fnc_dev_useraccessreview
     {
         public async Task<List<userTable>> LA_usersData (ILogger log)
         {
-            log.LogInformation("C# HTTP trigger function processed a request.");
-
             IConfiguration config = new ConfigurationBuilder()
 
             .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
@@ -42,10 +40,8 @@ namespace appsvc_fnc_dev_useraccessreview
 
             foreach (var item in PendingAcceptance)
             {
-                //TestId testObjet = new TestId(1, "test1");
-                OldLogs.Add(new userTable { Id = item.Id, UPN = item.UserPrincipalName, LastCall="" });
+                OldLogs.Add(new userTable { Id = item.Id, UPN = item.UserPrincipalName, signinDate ="N/A" });
             }
-
             return OldLogs;
         }
 
@@ -57,6 +53,7 @@ namespace appsvc_fnc_dev_useraccessreview
             .Select("userPrincipalName,externalUserState")
             .Filter("externalUserState eq 'PendingAcceptance'")
             .GetAsync();
+
             return users;
         }
 
@@ -65,7 +62,6 @@ namespace appsvc_fnc_dev_useraccessreview
             ClientSecretCredential cred = new ClientSecretCredential(tenantid, clientId, clientSecret);
             var client = new LogsQueryClient(cred);
             List<userTable> listUser = new List<userTable>();
-            log.LogInformation("inside");
             try
             {
 
@@ -80,20 +76,17 @@ namespace appsvc_fnc_dev_useraccessreview
 
                 foreach (var row in table.Rows)
                 {
-                    log.LogInformation(row["UserDisplayName"] + " " + row["LastCall"]);
                     listUser.Add(new userTable()
                     {
                         Id = row["UserId"].ToString(),
                         UPN = row["UserDisplayName"].ToString(),
-                        LastCall = row["LastCall"].ToString()
+                        signinDate = row["LastCall"].ToString()
                     });
-
                 }
             }
             catch (Exception ex)
             {
                 log.LogInformation(ex.Message);
-
             }
             return listUser;
         }
