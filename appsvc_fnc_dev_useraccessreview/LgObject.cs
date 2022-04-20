@@ -27,9 +27,10 @@ namespace appsvc_fnc_dev_useraccessreview
         }
 
         public PersonEntity() { }
-        public string First_Name_VC { get; set; }
-        public string Last_Name_VC { get; set; }
-        public string Email_VC { get; set; }
+        public string signinDate { get; set; }
+        public string Email { get; set; }
+        public string Id { get; set; }
+        public string UPN { get; set; }
     }
 
     public class YourEntity

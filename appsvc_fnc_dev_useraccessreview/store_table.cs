@@ -24,27 +24,30 @@ namespace appsvc_fnc_dev_useraccessreview
             log.LogInformation("C# HTTP trigger function processed a request.");
 
             string email = req.Query["email"];
-            string lastname = req.Query["lastname"];
-            string firstname = req.Query["firstname"];
+            string UPN = req.Query["UPN"];
+            string userID = req.Query["userID"];
+            string signinDate = req.Query["signinDate"];
             string table_action = req.Query["table_action"];
 
             string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
             dynamic data = JsonConvert.DeserializeObject(requestBody);
             email = email ?? data?.email;
-            lastname = lastname ?? data?.lastname;
-            firstname = firstname ?? data?.firstname;
+            UPN = UPN ?? data?.UPN;
+            userID = userID ?? data?.userID;
+            signinDate = signinDate ?? data?.signinDate;
             table_action = table_action ?? data.table_action;
 
 
             // Define the row,
-            string sRow = email + lastname;
+            string sRow = email + UPN;
 
             // Create the Entity and set the partition to signup, 
             PersonEntity _person = new PersonEntity("signup", sRow);
 
-            _person.First_Name_VC = firstname;
-            _person.Last_Name_VC = lastname;
-            _person.Email_VC = email;
+            _person.UPN = UPN;
+            _person.Id = userID;
+            _person.signinDate = signinDate;
+            _person.Email = email;
             IConfiguration config = new ConfigurationBuilder()
 
                       .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
@@ -63,7 +66,7 @@ namespace appsvc_fnc_dev_useraccessreview
                     var insert = await table_insert(tableClient, _person, log);
                     break;
                 case "update":
-                    var update = await table_update(tableClient, firstname, log);
+                    var update = await table_update(tableClient, UPN, log);
                     break;
                 case "delete":
                     var delete = await table_delete(tableClient, _person, log);
@@ -73,9 +76,9 @@ namespace appsvc_fnc_dev_useraccessreview
                     break;
             }    
                 
-            string responseMessage = string.IsNullOrEmpty(firstname)
+            string responseMessage = string.IsNullOrEmpty(UPN)
                 ? "This HTTP triggered function executed successfully. Pass a name in the query string or in the request body for a personalized response."
-                : $"Hello, {firstname}. This HTTP triggered function executed successfully.";
+                : $"Hello, {UPN}. This HTTP triggered function executed successfully.";
 
             return new OkObjectResult(responseMessage);
         }
@@ -83,7 +86,7 @@ namespace appsvc_fnc_dev_useraccessreview
         public static async Task<string> table_insert(CloudTableClient tableClient, PersonEntity _person, ILogger log)
         {
             // Get user that never sign in
-            CloudTable table = tableClient.GetTableReference("personitems");
+            CloudTable table = tableClient.GetTableReference("userAccessReview");
 
             await table.CreateIfNotExistsAsync();
 
@@ -93,7 +96,7 @@ namespace appsvc_fnc_dev_useraccessreview
             return "ok";
         }
 
-        public static async Task<string> table_update(CloudTableClient tableClient, string firstname, ILogger log)
+        public static async Task<string> table_update(CloudTableClient tableClient, string UPN, ILogger log)
         {
             log.LogInformation("In update");
             // Get user that never sign in
@@ -114,7 +117,7 @@ namespace appsvc_fnc_dev_useraccessreview
             //if (updateEntity != null)
             //{
                 //Change the description
-                updateEntity.First_Name_VC = firstname;
+                updateEntity.UPN = UPN;
 
                 // Create the InsertOrReplace TableOperation
                 TableOperation insertOrReplaceOperation = TableOperation.InsertOrReplace(updateEntity);
@@ -165,7 +168,7 @@ namespace appsvc_fnc_dev_useraccessreview
                     var queryResult = await table.ExecuteQuerySegmentedAsync(q, token);
                     foreach (var item in queryResult.Results)
                     {
-                    log.LogInformation($"{item.Email_VC}");
+                    log.LogInformation($"{item.Email}");
                        // yield return item;
                     }
                     token = queryResult.ContinuationToken;
